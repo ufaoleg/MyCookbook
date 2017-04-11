@@ -67,7 +67,6 @@ try:
 
     TransactionManager.Instance.TransactionTaskDone()
 
-#OUT = note
 except:  # if error accurs anywhere in the process catch it
     import traceback
 
