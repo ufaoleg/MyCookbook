@@ -24,6 +24,8 @@ from RevitServices.Transactions import TransactionManager
 doc = DocumentManager.Instance.CurrentDBDocument
 uiapp = DocumentManager.Instance.CurrentUIApplication
 app = uiapp.Application
+uidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument
+activeV = doc.ActiveView
 
 # Import RevitAPI
 clr.AddReference("RevitAPI")
