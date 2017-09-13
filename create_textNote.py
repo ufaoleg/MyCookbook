@@ -38,6 +38,8 @@ from System import Array
 from System.Collections.Generic import *
 
 import sys
+clr.AddReference("System.Core")
+clr.ImportExtensions(System.Linq)
 
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
