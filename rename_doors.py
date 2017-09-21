@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright(c) 2017, Oleg Rezvov
 # @PRSPKT, http://prspkt.ru
-__author__ = "ООО АБ Проспект"
+#__author__ = "ООО АБ Проспект"
 
 # region import
 import clr
