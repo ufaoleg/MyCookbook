@@ -38,7 +38,10 @@ from System.Collections.Generic import *
 import sys
 clr.AddReference("System.Core")
 clr.ImportExtensions(System.Linq)
+<<<<<<< HEAD
 
+=======
+>>>>>>> ac2f9d2c1b86d6350d3d3a08d7266c94e4e847db
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
 
