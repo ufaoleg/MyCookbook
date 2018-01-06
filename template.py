@@ -1,47 +1,48 @@
-# Copyright(c) 2017, Konrad K Sobon
-# @arch_laboratory, http://archi-lab.net
+# coding=utf-8
+# Copyright(c) 2017, Oleg Rezvov
+# @PRSPKT, http://prspkt.ru
+__author__ = "ООО АБ Проспект"
 
+import sys
+
+import Autodesk.DesignScript.Geometry
 import clr
+import Revit
+import RevitServices
+import System
+from Autodesk.Revit.DB import *
+from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+from System import Array
+from System.Collections.Generic import *
 
 clr.AddReference('ProtoGeometry')
-import Autodesk.DesignScript.Geometry
 
 # Import Element wrapper extension methods
 clr.AddReference("RevitNodes")
-import Revit
 
 clr.ImportExtensions(Revit.Elements)
 
 # Import geometry conversion extension methods
 clr.ImportExtensions(Revit.GeometryConversion)
 
-# Import DocumentManager and TransactionManager
+# Add a reference to RevitServices to gain access to the Revit Document.
+# Then import a DocumentManager from RevitServices to get the document.
 clr.AddReference("RevitServices")
-import RevitServices
-from RevitServices.Persistence import DocumentManager
-from RevitServices.Transactions import TransactionManager
 
+# Get the document from DocumentManager
 doc = DocumentManager.Instance.CurrentDBDocument
 uiapp = DocumentManager.Instance.CurrentUIApplication
 app = uiapp.Application
-uidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument
-activeV = doc.ActiveView
+UIdoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument
+ActiveView = doc.ActiveView
 
-# Import RevitAPI
+# Add a reference to the RevitAPI and import the DB namespace.
 clr.AddReference("RevitAPI")
-from Autodesk.Revit.DB import *
 
-import System
-from System import Array
-from System.Collections.Generic import *
 
-import sys
 clr.AddReference("System.Core")
 clr.ImportExtensions(System.Linq)
-<<<<<<< HEAD
-
-=======
->>>>>>> ac2f9d2c1b86d6350d3d3a08d7266c94e4e847db
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
 
@@ -59,11 +60,15 @@ def process_parallel_lists(_func, *lists):
                *lists)
 
 
-def to_list(x):
-    if hasattr(x, '__iter__'):
-        return x
+"""
+This function check if incoming element is a list,
+and if not, creates last one
+"""
+def to_list(element):
+    if hasattr(element, '__iter__'):
+        return element
     else:
-        return [x]
+        return [element]
 
 
 # Start Transaction

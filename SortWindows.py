@@ -54,8 +54,8 @@ def DefineFireproof(_title):
     return door_EI
 
 def MakeUnique(_list):
-	make_set = set(_list)
-	return list(make_set)
+    make_set = set(_list)
+    return list(make_set)
 
 def DefineMark(_list, int_type):
     CleanTypeList = []
@@ -78,42 +78,44 @@ def ConvertToFloatStringWithDefineMark(_list, _type):
     return map(lambda x: "{:.2f}".format(x), m[0]), m[1]
 
 
-windowList = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Doors).WhereElementIsNotElementType().ToElements()
+windowList = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Windows).WhereElementIsNotElementType().ToElements()
 outList = []
-door_1 = []
-door_2 = []
-door_3 = []
-door_4 = []
+window_1 = []
 
-for door in windowList:
-    if door.Type.LookupParameter("Маркировка типоразмера").AsValueString().StartsWith("ОК"):
-        door_name = door.Name
-        if "1." in door_name:
-            door_1.append(door)
-        if "2." in door_name:
-            door_2.append(door)
-        if "3." in door_name:
-            door_3.append(door)
-        if "4." in door_name:
-            door_4.append(door)
-
-# OUT = sorted(outList, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_1 = sorted(door_1, key = lambda x: (DefineFireproof(x.Name), ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_2 = sorted(door_2, key = lambda x: (DefineFireproof(x.Name), ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_3 = sorted(door_3, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_4 = sorted(door_4, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-
-doorMark_1 = ConvertToFloatStringWithDefineMark(door_1, 1)
-doorMark_2 = ConvertToFloatStringWithDefineMark(door_2, 2)
-doorMark_3 = ConvertToFloatStringWithDefineMark(door_3, 3)
-doorMark_4 = ConvertToFloatStringWithDefineMark(door_4, 4)
-
-SortedDoorTypes = doorMark_1[1] + doorMark_2[1] + doorMark_3[1] + doorMark_4[1]
-SortedDoorMarkList = doorMark_1[0] + doorMark_2[0] + doorMark_3[0] + doorMark_4[0]
-
-#SortedDoorList = door_1
-#SortedDoorMarkList = doorMark_1
+for window in windowList:
+    if window.Symbol.LookupParameter("Маркировка типоразмера").AsString().startswith("ОК"):
+        window_name = window.Name
+        outList.append(window)
 
 
-#OUT = SortedDoorList
-OUT = SortedDoorTypes, SortedDoorMarkList
+cleanList = []
+newMark = []
+mark = 1
+elementList = []
+sortedList = sorted(outList, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
+for e in sortedList:
+    if e.Name not in cleanList:
+        cleanList.append(e.Name)
+        newMark.append(mark)
+        elementList.append(e)
+        mark += 1
+    else:
+        pass
+OUT = map(lambda x: "OK-{}".format(x),elementList),newMark
+
+# window_1 = sorted(window_1, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
+
+# windowMark_1 = ConvertToFloatStringWithDefineMark(window_1, 1)
+# # doorMark_2 = ConvertToFloatStringWithDefineMark(door_2, 2)
+# # doorMark_3 = ConvertToFloatStringWithDefineMark(door_3, 3)
+# # doorMark_4 = ConvertToFloatStringWithDefineMark(door_4, 4)
+
+# SortedDoorTypes = window_1[1]
+# SortedDoorMarkList = windowMark_1[0]
+
+# # #SortedDoorList = door_1
+# # #SortedDoorMarkList = doorMark_1
+
+
+# # #OUT = SortedDoorList
+# OUT = SortedDoorTypes, SortedDoorMarkList

@@ -1,11 +1,13 @@
+# coding=utf-8
 # Copyright(c) 2017, Oleg Rezvov
 # @PRSPKT, http://prspkt.ru
-__author__ = "Oleg Rezvov"
+__author__ = "ООО АБ Проспект"
 
+# region import
 import clr
 
 clr.AddReference('ProtoGeometry')
-import Autodesk.DesignScript.Geometry
+from Autodesk.DesignScript.Geometry import *
 
 # Import Element wrapper extension methods
 clr.AddReference("RevitNodes")
@@ -25,11 +27,10 @@ from RevitServices.Transactions import TransactionManager
 doc = DocumentManager.Instance.CurrentDBDocument
 uiapp = DocumentManager.Instance.CurrentUIApplication
 app = uiapp.Application
-uidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument
-activeV = doc.ActiveView
 
 # Import RevitAPI
 clr.AddReference("RevitAPI")
+import Autodesk
 from Autodesk.Revit.DB import *
 
 import System
@@ -37,84 +38,100 @@ from System import Array
 from System.Collections.Generic import *
 
 import sys
-clr.AddReference("System.Core")
-clr.ImportExtensions(System.Linq)
 
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
 
 
-def ConvertTo(_element, _data):
-    if _element and _data:
-        s = _element.Symbol.LookupParameter(_data).AsValueString()
-    return int(s)
+def ProcessList(_func, _list):
+    return map(lambda x: ProcessList(_func, x) if type(x) == list else _func(x), _list)
 
-def DefineFireproof(_title):
-    door_EI = _title[_title.find("EI"):_title.find("0") + 1]
-    return door_EI
+def ConvertDim(_length):
+    if _length == 2070:
+        return 21
+    elif _length < 1000:
+        return int(str(_length / 100)[:1])
+    else:
+        return int(str(_length / 100)[:2])
 
-def MakeUnique(_list):
-    make_set = set(_list)
-    return list(make_set)
+def ConvertBalconyDoor(_length):
+    if not _length < 1000:
+        return "ПО-СБ"
+    else:
+        return "РО"
 
-def DefineMark(_list, int_type):
-    CleanTypeList = []
-    int_type = int(int_type)
-    newMark = []
-    mark = int_type + 0.01
-    elementList = []
-    for i in _list:
-        if i.Name not in CleanTypeList:
-            CleanTypeList.append(i.Name)
-            newMark.append(mark)
-            elementList.append(i)
-            mark += 0.01
-        else:
-            pass
-    return newMark, elementList
+koef = 304.8
 
-def ConvertToFloatStringWithDefineMark(_list, _type):
-    m = DefineMark(_list, _type)
-    return map(lambda x: "{:.2f}".format(x), m[0]), m[1]
+if isinstance(IN[0], list):
+    elements = []
+    for i in IN[0]:
+        elements.append(UnwrapElement(i))
+else:
+    elements = [UnwrapElement(IN[0])]
+
+output = []
+output_elements = []
+
+try:
+    errorReport = None
+    for element in elements:
+        el_width = element.Symbol.LookupParameter('Ширина').AsDouble() * koef
+        el_height = element.Symbol.LookupParameter('Высота').AsDouble() * koef
+        el_mark = element.Symbol.LookupParameter('GP_Марка').AsString()
+        el_left_right = "Л" if element.Symbol.LookupParameter('Левая').AsValueString() == "Да" else ""
+        el_type_name = element.Name
+        el_EI = el_type_name[el_type_name.find("EI"):el_type_name.find("0 ")+1]
+        if el_type_name.startswith("Тип 1."):
+            output.append("ДПД {} {} ({:.0f}-{:.0f}(h))".format(el_EI, el_left_right, el_height, el_width))
+            output_elements.append(element)
+        if el_type_name.startswith("Тип 2."):
+            output.append("ДПМ {} {} ({:.0f}-{:.0f}(h)) ГОСТ 53307-2009"\
+                              .format(el_EI, el_left_right, el_height, el_width))
+            output_elements.append(element)
+        if el_type_name.startswith("Тип 3."):
+            if "Дус" in el_type_name:
+                output.append("ДУС {} {:.0f}-{:.0f} Серия 5.904-4"\
+                              .format(el_left_right, el_height, el_width))
+                output_elements.append(element)
+            elif "Люк" in el_type_name:
+                output.append("Люк металлический {} ({:.0f}-{:.0f}(h)) ГОСТ 31173-2003"\
+                              .format(el_left_right, el_height, el_width))
+                output_elements.append(element)
+            else:
+                output.append("ДСВ {} ({:.0f}-{:.0f}(h)) ГОСТ 31173-2003"\
+                              .format(el_left_right, el_height, el_width))
+                output_elements.append(element)
+        if el_type_name.startswith("Тип 4."):
+            output.append("ДГ {}-{}{} ГОСТ 6629-88".format(ConvertDim(el_height), ConvertDim(el_width), el_left_right))
+            output_elements.append(element)
+        if "оджи" in el_type_name:
+            output.append("ДАН О Оп {} БПР Р {:.0f}х{:.0f}, ГОСТ 23747-2015" \
+                .format(el_left_right, el_height, el_width))
+            output_elements.append(element)
+        """
+        ОСП - одинарная конструкция со стеклопакетом
+        Р - раздельная конструкция с листовыми стеклами
+        О - одинарная конструкция с листовым стеклом
+        ПО - поворотно-откидное открывание
+        """
+        if "БД" in el_type_name:
+            if element.Symbol.LookupParameter('Левая').AsValueString() == 'Да':
+                el_left_right = "Л"
+            else:
+                el_left_right = "П"
+            output.append("БП ОСП {}-{}{} {} ГОСТ 23166-99".format(ConvertDim(el_width), ConvertDim(el_height), el_left_right, ConvertBalconyDoor(el_width)))
+            output_elements.append(element)
 
 
-doorList = FilteredElementCollector(doc).OfCategory(
-    BuiltInCategory.OST_Doors).WhereElementIsNotElementType().ToElements()
-outList = []
-door_1 = []
-door_2 = []
-door_3 = []
-door_4 = []
 
-for door in doorList:
-    if door.LookupParameter("Учитывать в подсчете").AsValueString() == "Да":
-        door_name = door.Name
-        if "1." in door_name:
-            door_1.append(door)
-        if "2." in door_name:
-            door_2.append(door)
-        if "3." in door_name:
-            door_3.append(door)
-        if "4." in door_name:
-            door_4.append(door)
+except:  # if error accurs anywhere in the process catch it
+    import traceback
 
-# OUT = sorted(outList, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_1 = sorted(door_1, key = lambda x: (DefineFireproof(x.Name), ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_2 = sorted(door_2, key = lambda x: (DefineFireproof(x.Name), ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_3 = sorted(door_3, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
-door_4 = sorted(door_4, key = lambda x: (ConvertTo(x, "Ширина"), ConvertTo(x, "Высота")))
+    errorReport = traceback.format_exc()  # End Transaction
+    TransactionManager.Instance.TransactionTaskDone()
 
-doorMark_1 = ConvertToFloatStringWithDefineMark(door_1, 1)
-doorMark_2 = ConvertToFloatStringWithDefineMark(door_2, 2)
-doorMark_3 = ConvertToFloatStringWithDefineMark(door_3, 3)
-doorMark_4 = ConvertToFloatStringWithDefineMark(door_4, 4)
-
-SortedDoorTypes = doorMark_1[1] + doorMark_2[1] + doorMark_3[1] + doorMark_4[1]
-SortedDoorMarkList = doorMark_1[0] + doorMark_2[0] + doorMark_3[0] + doorMark_4[0]
-
-#SortedDoorList = door_1
-#SortedDoorMarkList = doorMark_1
-
-
-#OUT = SortedDoorList
-OUT = SortedDoorTypes, SortedDoorMarkList
+# Assign your output to the OUT variable
+if errorReport == None:
+    OUT = [output_elements, output]
+else:
+    OUT = errorReport

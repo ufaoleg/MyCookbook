@@ -1,4 +1,4 @@
-
+# coding=utf-8
 import clr
 
 clr.AddReference('ProtoGeometry')
@@ -28,34 +28,47 @@ activeV = doc.ActiveView
 # Import RevitAPI
 clr.AddReference("RevitAPI")
 from Autodesk.Revit.DB import *
-from itertools import repeat
+
 import System
 from System import Array
 from System.Collections.Generic import *
 
 import sys
 
+clr.AddReference("System.Core")
+clr.ImportExtensions(System.Linq)
+
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
 
-def Unwrap(e):
-	return UnwrapElement(e)
+incoming = UnwrapElement(IN[0])
 
-outdata_rooms = []
-outdata_areas = []
+ParamGroupName = "П_Группа помещений"
+ParamRoomName = "П_Имя помещения"
 
-list_levels = [Unwrap(i).Level for i in IN[0]]
 
-for lvl in xrange(len(list_levels)):
-	sublist_rooms = []
-	sublist_areas = []
-	for room, areas in zip(IN[0],IN[1]):
-		elev = Unwrap(room).Level.Elevation*304.8
-		levelName = Unwrap(room).Level.Name
-		if elev < 7400:
-			sublist_rooms.append(room)
-			sublist_areas.append(areas)
-	outdata_rooms.append(sublist_rooms)
-	outdata_areas.append(sublist_areas)
+def get_group_name(_list):
+    _lst = []
+    for group in set(_list.Select(lambda x: x.LookupParameter(ParamGroupName).AsString())):
+        group_list = []
+        for number in set(_list.Select(lambda x: x.LookupParameter(ParamRoomName).AsString())):
+            number_list = []
+            for room in _list:
+                if room.LookupParameter(ParamGroupName).AsString() == group:
+                    if room.LookupParameter(ParamRoomName).AsString() == number:
+                        number_list.append(room)
+            group_list.append(number_list)
+        _lst.append(group_list)
+    return _lst
 
-OUT = outdata_rooms, outdata_areas
+
+def filter_empty_group(_list):
+    output = []
+    for group in get_group_name(_list):
+        for subgroup in group:
+            if subgroup:
+                output.append(subgroup)
+    return output
+
+
+OUT = filter_empty_group(incoming)
