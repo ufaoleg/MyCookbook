@@ -27,7 +27,8 @@ clr.ImportExtensions(Revit.Elements)
 import System
 from System import Array
 from System.Collections.Generic import *
-
+clr.AddReference("System.Core")
+clr.ImportExtensions(System.Linq)
 import sys
 
 pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
@@ -52,14 +53,14 @@ def is_not_edit(doc, e):
 	else: flag = True
 	return flag
 
-def try_get_parameter(e, name, start = 0):
+def try_get_parameter(e, name):
 	"""
 	 Проверить, существует ли такой параметр, и если да, то получить
 	 значение в текстовом виде. Иначе - None
 	"""
 	param = e.LookupParameter(name)
 	if param:
-		return e.LookupParameter(name).AsString()[start:]
+		return e.LookupParameter(name).AsString()
 	return None
 
 def get_titleblock_on_sheet(doc, sheet):
@@ -67,26 +68,27 @@ def get_titleblock_on_sheet(doc, sheet):
 	Выборка всех элементов, принадлежащих FamilyInstance на каждом листе
 	"""
 	col = FilteredElementCollector(doc)
-	out = col.OfClass(FamilyInstance).OwnedByView(sheet.Id).ToElements()[0]
-	return out.Name
+	out = col.OfClass(FamilyInstance).OwnedByView(sheet.Id).ToElements().FirstOrDefault()
+	if out: return out.Name
+	else: return "?"
 
 try:
 	errorReport = None
 	# Start Transaction
 	TransactionManager.Instance.EnsureInTransaction(doc)
-	for index, sheet in enumerate(sheets):
+	for sheet in sheets:
 		if is_not_edit(doc, sheet):
 			razdel = try_get_parameter(sheet, "Раздел проекта")
 			number = try_get_parameter(sheet, "SH_Номер листа")
-			new_number = try_get_parameter(sheet, "Номер листа", 1)
+			new_number = try_get_parameter(sheet, "Номер листа")[1:]
 			titlebl = get_titleblock_on_sheet(doc, sheet)
 			if razdel is not None and razdel == input_razdel:
 				sheet.LookupParameter("Формат листа").Set(titlebl)
 				list_ok.append(sheet)
+			else:
+				list_error.append(sheet)
 		else:
 			list_error.append(sheet)
-	else:
-		list_error.append(sheet)
 	TransactionManager.Instance.TransactionTaskDone()
 except:  # if error accurs anywhere in the process catch it
 	import traceback
